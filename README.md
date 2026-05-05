@@ -3,7 +3,6 @@
 A Star Trek Game.
 
 >Play the current release at http://cleancoder.com/space-war 
-> (The server is slow so be patient while it loads, the cache is set for 24 hours)
 
 >_Courtesy of Mike Fikes (@mfikes) you can play a very old version at http://spacewar.fikesfarm.com/spacewar.html_
 
@@ -273,5 +272,8 @@ Klingons will resume their agressive behavior.
 
 ## Starting a local javascript instance.
     `clj -M:cljs;open index.html`
+
+## Building the production javascript bundle.
+    `clj -M:cljs-prod`
     
  

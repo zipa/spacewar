@@ -4,8 +4,12 @@
     <title>Space War</title>
   </head>
   <body>
-    <canvas id="space-war"></canvas>
+    <div id="space-war"></div>
     <script src="js/main.js"></script>
-    <script>spacewar.core._main()</script>
+    <script>
+      window.addEventListener('load', function () {
+        spacewar.core._main();
+      });
+    </script>
   </body>
 </html>
