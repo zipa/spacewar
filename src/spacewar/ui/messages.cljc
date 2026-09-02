@@ -107,11 +107,7 @@
                 (send-message message value max)
                 (recur threshold (rest thresholds))))))))))
 
-(defn- damage-thresholds [mild severe critical]
-  [[0.1 nil]
-   [0.3 mild]
-   [0.8 severe]
-   [1 critical]])
+(defn- damage-thresholds [mild severe critical] [[0.1 nil] [0.3 mild] [0.8 severe] [1 critical]])
 
 (def ship-damage-messages
   [[:life-support-damage :life-damage :life-severe :life-critical]
@@ -163,3 +159,7 @@
 
 (defn add-messages! [world]
   (ship-messages (:ship world)))
+
+;; clj-mutate-manifest-begin
+;; {:version 1, :tested-at "2026-09-02T15:16:30.476591-05:00", :module-hash "-1890885733", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line nil, :hash "-1425829718"} {:id "def/last-message", :kind "def", :line 5, :end-line nil, :hash "-2137700098"} {:id "defn-/msg", :kind "defn-", :line 7, :end-line nil, :hash "807405242"} {:id "defn-/percent", :kind "defn-", :line 13, :end-line nil, :hash "1595700280"} {:id "defn-/percent-text", :kind "defn-", :line 16, :end-line nil, :hash "125715173"} {:id "def/status-message-text", :kind "def", :line 19, :end-line nil, :hash "-1704263089"} {:id "def/event-messages", :kind "def", :line 68, :end-line nil, :hash "-198287565"} {:id "defn/send-message", :kind "defn", :line 81, :end-line nil, :hash "-1420568741"} {:id "defn/item-message", :kind "defn", :line 89, :end-line nil, :hash "-385701440"} {:id "defn-/damage-thresholds", :kind "defn-", :line 110, :end-line nil, :hash "348009455"} {:id "def/ship-damage-messages", :kind "def", :line 112, :end-line nil, :hash "701265884"} {:id "defn-/ship-messages", :kind "defn-", :line 120, :end-line nil, :hash "-1714732556"} {:id "defn/add-messages!", :kind "defn", :line 160, :end-line nil, :hash "1018780107"}]}
+;; clj-mutate-manifest-end

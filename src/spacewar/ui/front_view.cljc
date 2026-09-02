@@ -108,3 +108,7 @@
   (update-state [_ _]
     (p/pack-update
       (front-view. (add-stars (update state :stars move-stars))))))
+
+;; clj-mutate-manifest-begin
+;; {:version 1, :tested-at "2026-09-02T15:27:05.14158-05:00", :module-hash "1541074923", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line nil, :hash "1904651839"} {:id "def/star-count", :kind "def", :line 26, :end-line nil, :hash "152856414"} {:id "def/f-lum", :kind "def", :line 27, :end-line nil, :hash "-625376035"} {:id "defn-/move-star", :kind "defn-", :line 29, :end-line nil, :hash "-1580297727"} {:id "defn-/move-stars", :kind "defn-", :line 35, :end-line nil, :hash "881781089"} {:id "defn-/star-in-frame", :kind "defn-", :line 38, :end-line nil, :hash "502584766"} {:id "defn/star-size", :kind "defn", :line 50, :end-line nil, :hash "1308209851"} {:id "defn/star-color", :kind "defn", :line 60, :end-line nil, :hash "-1518652543"} {:id "defn-/make-random-star", :kind "defn-", :line 67, :end-line nil, :hash "1968287013"} {:id "defn-/make-stars", :kind "defn-", :line 75, :end-line nil, :hash "-1953400823"} {:id "defn-/add-stars", :kind "defn-", :line 78, :end-line nil, :hash "-17736195"} {:id "form/11/deftype", :kind "deftype", :line 84, :end-line nil, :hash "-247493245"}]}
+;; clj-mutate-manifest-end

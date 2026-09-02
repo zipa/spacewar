@@ -64,8 +64,7 @@
     (assoc context :frame-times frame-times)))
 
 (defn frames-per-second [frame-times]
-  (if (empty? frame-times)
-    0
+  (if (empty? frame-times) 0
     (let [sum (reduce + frame-times)
           mean (/ sum (count frame-times))
           fps (/ 1000 mean)]
@@ -135,3 +134,7 @@
                     :draw draw-state
                     :middleware [m/fun-mode]
                     :host "space-war"))))
+
+;; clj-mutate-manifest-begin
+;; {:version 1, :tested-at "2026-09-02T15:14:16.165376-05:00", :module-hash "-963544528", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line nil, :hash "495364658"} {:id "defn/game-saved?", :kind "defn", :line 15, :end-line nil, :hash "-1712562255"} {:id "defn-/read-saved-world", :kind "defn-", :line 20, :end-line nil, :hash "258643877"} {:id "defn-/present-messages", :kind "defn-", :line 24, :end-line nil, :hash "277294781"} {:id "defn/setup", :kind "defn", :line 31, :end-line nil, :hash "1910773817"} {:id "defn/add-frame-time", :kind "defn", :line 56, :end-line nil, :hash "839479727"} {:id "defn/frames-per-second", :kind "defn", :line 66, :end-line nil, :hash "-1066583961"} {:id "defn/frame-timing", :kind "defn", :line 73, :end-line nil, :hash "-155019083"} {:id "defn-/save-world", :kind "defn-", :line 79, :end-line nil, :hash "450552232"} {:id "defn/update-state", :kind "defn", :line 84, :end-line nil, :hash "199391289"} {:id "defn/draw-state", :kind "defn", :line 107, :end-line nil, :hash "2064245365"} {:id "defn/-main", :kind "defn", :line 114, :end-line nil, :hash "1629887869"}]}
+;; clj-mutate-manifest-end

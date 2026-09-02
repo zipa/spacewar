@@ -17,11 +17,7 @@
 (s/def ::romulan (s/keys :reg-un [::x ::y ::age ::state ::fire-weapon]))
 (s/def ::romulans (s/coll-of ::romulan))
 
-(defn make-romulan [x y]
-  {:x x :y y
-   :age 0
-   :state :invisible
-   :fire-weapon false})
+(defn make-romulan [x y] {:x x :y y :age 0 :state :invisible :fire-weapon false})
 
 (defn update-romulans-age [ms world]
   (let [romulans (:romulans world)
@@ -123,4 +119,6 @@
   (-> world
       (add-occasional-romulan)))
 
-
+;; clj-mutate-manifest-begin
+;; {:version 1, :tested-at "2026-09-02T15:16:25.972046-05:00", :module-hash "-1347853681", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line nil, :hash "1419516039"} {:id "form/1/s/def", :kind "s/def", :line 11, :end-line nil, :hash "-1821849317"} {:id "form/2/s/def", :kind "s/def", :line 12, :end-line nil, :hash "-590949776"} {:id "form/3/s/def", :kind "s/def", :line 13, :end-line nil, :hash "-262737073"} {:id "form/4/s/def", :kind "s/def", :line 14, :end-line nil, :hash "791653934"} {:id "form/5/s/def", :kind "s/def", :line 15, :end-line nil, :hash "-911318250"} {:id "form/6/s/def", :kind "s/def", :line 17, :end-line nil, :hash "-472298019"} {:id "form/7/s/def", :kind "s/def", :line 18, :end-line nil, :hash "-1399541548"} {:id "defn/make-romulan", :kind "defn", :line 20, :end-line nil, :hash "-1499860732"} {:id "defn/update-romulans-age", :kind "defn", :line 22, :end-line nil, :hash "897340577"} {:id "def/romulan-state-duration", :kind "def", :line 27, :end-line nil, :hash "92879147"} {:id "defn/romulan-state-transition", :kind "defn", :line 34, :end-line nil, :hash "-587681179"} {:id "defn/update-romulan-state", :kind "defn", :line 39, :end-line nil, :hash "641101397"} {:id "defn/update-romulans-state", :kind "defn", :line 51, :end-line nil, :hash "1226790010"} {:id "defn/remove-disappeared-romulans", :kind "defn", :line 60, :end-line nil, :hash "-1844102003"} {:id "defn-/explode-romulan", :kind "defn-", :line 65, :end-line nil, :hash "1832693499"} {:id "defn/destroy-hit-romulans", :kind "defn", :line 69, :end-line nil, :hash "1819180135"} {:id "defn-/romulan-shots", :kind "defn-", :line 78, :end-line nil, :hash "-834018807"} {:id "defn/fire-romulan-weapons", :kind "defn", :line 85, :end-line nil, :hash "409026408"} {:id "defn/update-romulans", :kind "defn", :line 92, :end-line nil, :hash "1991701697"} {:id "defn/add-romulan", :kind "defn", :line 100, :end-line nil, :hash "369710481"} {:id "defn/add-occasional-romulan", :kind "defn", :line 112, :end-line nil, :hash "-647004437"} {:id "defn/update-romulans-per-second", :kind "defn", :line 118, :end-line nil, :hash "1620581680"}]}
+;; clj-mutate-manifest-end

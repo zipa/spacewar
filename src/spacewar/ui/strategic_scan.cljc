@@ -180,3 +180,7 @@
                        :pixel-width (/ (:h state) range)
                        :sector-top-left [0 0]))
         event))))
+
+;; clj-mutate-manifest-begin
+;; {:version 1, :tested-at "2026-09-02T15:19:52.790371-05:00", :module-hash "-976845691", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line nil, :hash "379802547"} {:id "defn-/draw-background", :kind "defn-", :line 10, :end-line nil, :hash "1328816427"} {:id "defn-/draw-stars", :kind "defn-", :line 16, :end-line nil, :hash "1245480477"} {:id "defn-/draw-klingons", :kind "defn-", :line 29, :end-line nil, :hash "-687633700"} {:id "defn-/draw-romulans", :kind "defn-", :line 42, :end-line nil, :hash "120885578"} {:id "defn-/draw-ship", :kind "defn-", :line 53, :end-line nil, :hash "1723704309"} {:id "defn-/draw-bases", :kind "defn-", :line 59, :end-line nil, :hash "-355474327"} {:id "defn-/draw-transport-routes", :kind "defn-", :line 70, :end-line nil, :hash "698838436"} {:id "defn-/draw-transports", :kind "defn-", :line 86, :end-line nil, :hash "1896364861"} {:id "defn-/draw-sectors", :kind "defn-", :line 99, :end-line nil, :hash "1666241303"} {:id "defn-/click->pos", :kind "defn-", :line 118, :end-line nil, :hash "-601742613"} {:id "form/11/deftype", :kind "deftype", :line 126, :end-line nil, :hash "175927860"}]}
+;; clj-mutate-manifest-end

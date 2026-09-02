@@ -7,9 +7,7 @@
             ))
 
 (defn damage-level [damage]
-  (condp >= damage
-    0 0
-    33 1
+  (condp >= damage 0 0 33 1
     66 2
     99 3
     4))
@@ -116,3 +114,7 @@
       (p/pack-update
         (damage-panel. state)
         events))))
+
+;; clj-mutate-manifest-begin
+;; {:version 1, :tested-at "2026-09-02T15:16:35.032765-05:00", :module-hash "-229647285", :forms [{:id "form/0/ns", :kind "ns", :line 1, :end-line nil, :hash "156683179"} {:id "defn/damage-level", :kind "defn", :line 9, :end-line nil, :hash "1041200361"} {:id "form/2/deftype", :kind "deftype", :line 15, :end-line nil, :hash "1967109836"}]}
+;; clj-mutate-manifest-end
