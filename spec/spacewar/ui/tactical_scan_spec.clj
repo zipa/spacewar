@@ -136,3 +136,14 @@
   (it "uses red and a larger radius for a corbomite shot"
     (should= {:color uic/red :radius 5}
              (kinetic-shot-style {:corbomite true} uic/white))))
+
+(describe "per-type shot drawing"
+  (it "does not collide with the all-shots drawer"
+    (let [draw-objects-in (ns-resolve 'spacewar.ui.tactical-scan 'draw-objects-in)
+          draw-phaser-shots (ns-resolve 'spacewar.ui.tactical-scan 'draw-phaser-shots)
+          state {:w 200 :world {:shots [{:type :phaser :x 1 :y 2}
+                                        {:type :kinetic :x 3 :y 4}]}}
+          seen (atom nil)]
+      (with-redefs-fn {draw-objects-in (fn [_ objects _] (reset! seen objects))}
+        #(draw-phaser-shots state))
+      (should= [{:type :phaser :x 1 :y 2}] @seen))))

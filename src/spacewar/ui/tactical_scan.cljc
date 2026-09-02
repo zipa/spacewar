@@ -157,17 +157,17 @@
 (defn- shots-of-type [state type]
   (filter #(= type (:type %)) (:shots (:world state))))
 
-(defn- draw-shots [state type draw]
+(defn- draw-shots-of-type [state type draw]
   (draw-objects-in state (shots-of-type state type) draw))
 
 (defn- draw-torpedo-shots [state]
-  (draw-shots state :torpedo (partial draw-torpedo uic/white)))
+  (draw-shots-of-type state :torpedo (partial draw-torpedo uic/white)))
 
 (defn- draw-klingon-torpedo-shots [state]
-  (draw-shots state :klingon-torpedo (partial draw-torpedo uic/green)))
+  (draw-shots-of-type state :klingon-torpedo (partial draw-torpedo uic/green)))
 
 (defn- draw-romulan-blast-shots [state]
-  (draw-shots state :romulan-blast (partial icons/draw-romulan-shot (/ (:w state) glc/tactical-range))))
+  (draw-shots-of-type state :romulan-blast (partial icons/draw-romulan-shot (/ (:w state) glc/tactical-range))))
 
 (defn kinetic-shot-style [shot color]
   (if (:corbomite shot)
@@ -182,10 +182,10 @@
     (q/ellipse 0 0 radius radius)))
 
 (defn- draw-kinetic-shots [state]
-  (draw-shots state :kinetic (partial draw-kinetic-shot uic/kinetic-color)))
+  (draw-shots-of-type state :kinetic (partial draw-kinetic-shot uic/kinetic-color)))
 
 (defn- draw-klingon-kinetic-shots [state]
-  (draw-shots state :klingon-kinetic (partial draw-kinetic-shot uic/klingon-kinetic-color)))
+  (draw-shots-of-type state :klingon-kinetic (partial draw-kinetic-shot uic/klingon-kinetic-color)))
 
 (defn- phaser-intensity [range]
   (let [intensity (* 255 (- 1 (/ range glc/phaser-range)))]
@@ -207,10 +207,10 @@
     (q/line 0 0 sx sy)))
 
 (defn- draw-phaser-shots [state]
-  (draw-shots state :phaser (partial draw-phaser-shot phaser-color)))
+  (draw-shots-of-type state :phaser (partial draw-phaser-shot phaser-color)))
 
 (defn- draw-klingon-phaser-shots [state]
-  (draw-shots state :klingon-phaser (partial draw-phaser-shot klingon-phaser-color)))
+  (draw-shots-of-type state :klingon-phaser (partial draw-phaser-shot klingon-phaser-color)))
 
 (defn explosion-radius [age profile]
   (loop [profile profile radius 0 last-time 0]
