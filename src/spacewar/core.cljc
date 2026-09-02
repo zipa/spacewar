@@ -96,14 +96,14 @@
         [complex events] (p/update-state complex game-world)
         game-world (world/process-events (flatten events) game-world)
         game-world (world/update-world ms game-world)
-        _ (when (world/crossed-interval? time last-update-time 1000)
-            (messages/add-messages! game-world))
-        game-world (world/apply-periodic-updates game-world time last-update-time)
         game-world (present-messages game-world)]
     (view-frame/update-messages ms game-world)
-    (when (world/crossed-interval? time last-update-time 5000)
-      (save-world game-world))
-    (assoc context :state complex :world game-world)))
+    (when (world/crossed-interval? time last-update-time 1000)
+      (messages/add-messages! game-world))
+    (let [game-world (world/apply-periodic-updates game-world time last-update-time)]
+      (when (world/crossed-interval? time last-update-time 5000)
+        (save-world game-world))
+      (assoc context :state complex :world game-world))))
 
 (defn draw-state [{:keys [state]}]
   (q/fill 200 200 200)
