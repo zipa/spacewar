@@ -2,7 +2,7 @@
   (:require [clojure.spec.alpha :as s]
             [spacewar.game-logic.config :as glc]
             [spacewar.game-logic.explosions :as explosions]
-            [spacewar.ui.messages :as messages]
+            [spacewar.game-logic.notifications :as notifications]
             [spacewar.geometry :as geo]
             [spacewar.util :as util]
             [spacewar.vector :as vector]))
@@ -477,10 +477,11 @@
                      (conj explosions (explosions/->explosion :corbomite-device corbomite-base)))
         world (if corbomite-incomplete?
                 world
-                (remove-routes-to-base world corbomite-base))]
-    (when (not corbomite-incomplete?)
-      (messages/send-message :corbomite-device))
-    (assoc world :bases bases :explosions explosions)))
+                (remove-routes-to-base world corbomite-base))
+        world (assoc world :bases bases :explosions explosions)]
+    (if corbomite-incomplete?
+      world
+      (notifications/notify world :corbomite-device))))
 
 (defn update-bases [ms world]
   (let [bases (:bases world)

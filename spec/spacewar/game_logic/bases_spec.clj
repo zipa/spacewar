@@ -436,7 +436,8 @@
       (should= 0 (:antimatter base))
       (should= 0 (:dilithium base))
       (should-not-be-nil explosion)
-      (should= :corbomite-device (:type explosion))))
+      (should= :corbomite-device (:type explosion))
+      (should= [:corbomite-device] (:messages world))))
 
   (it "does not receive transports near a corbomite device"
     (let [world (mom/make-world)

@@ -1,6 +1,5 @@
 (ns spacewar.game-logic.ship-spec
   (:require [spacewar.game-logic.bases :as bases]
-            [spacewar.ui.view-frame :as view-frame]
             [spacewar.game-logic.config :refer [antimatter-to-heat
                                                 base-deployment-antimatter
                                                 base-deployment-dilithium
@@ -44,7 +43,7 @@
 
 (declare ship)
 (describe "ship"
-  (describe "rotate direction"
+  (context "rotate direction"
     (it "returns 0 when current and desired headings are 0"
       (should= 0 (rotation-direction 0 0)))
     (it "returns 1 when turning right from 0 to 1"
@@ -62,7 +61,7 @@
     (it "returns 1 when turning from 180 to 181"
       (should= 1 (rotation-direction 180 181))))
 
-  (describe "rotation timing"
+  (context "rotation timing"
     (it "rotates ship toward 90 degrees over 1000ms"
       (let [dps (* 1000 rotation-rate)
             ship (mom/make-ship)
@@ -76,7 +75,7 @@
             rotated-ship (rotate-ship 1000 ship2)]
         (should= (- 90 dps) (:heading rotated-ship) 0.0001))))
 
-  (describe "rotation will not pass desired heading"
+  (context "rotation will not pass desired heading"
     (it "stops at 90 when close to heading-setting"
       (let [ship (mom/make-ship)
             ship1 (assoc ship :heading 89 :heading-setting 90)
@@ -88,7 +87,7 @@
             rotated-ship (rotate-ship 1000 ship2)]
         (should= 89 (:heading rotated-ship)))))
 
-  (describe "drag"
+  (context "drag"
     (it "applies no drag to zero velocity"
       (should (ut/roughly-v [0 0] (drag [0 0]) 0.0001)))
     (it "applies drag to vertical velocity"
@@ -102,13 +101,13 @@
                       (* -1 drag-factor (Math/sqrt 2))]]
         (should (ut/roughly-v expected (drag [1 1]) 0.0001)))))
 
-  (describe "apply drag values"
+  (context "apply drag values"
     (it "reduces velocity by drag"
       (should (ut/roughly-v [1 1] (apply-drag [-1 -1] [2 2]) 0.0001)))
     (it "stops velocity when drag exceeds it"
       (should (ut/roughly-v [0 0] (apply-drag [-2 -2] [1 1]) 0.0001))))
 
-  (describe "apply impulse"
+  (context "apply impulse"
     (it "does nothing with zero impulse"
       (should (ut/roughly-v [0 0] (apply-impulse 1000 [0 0] 0 0) 0.0001)))
     (it "applies impulse eastward"
@@ -122,7 +121,7 @@
             expected (vector/add [1 1] [(* -1 impulse-thrust 1000 3) 0])]
         (should (ut/roughly-v expected result 0.0001)))))
 
-  (describe "ship position constraints"
+  (context "ship position constraints"
     (it "constrains +x +y"
       (should= {:x glc/known-space-x
                 :y glc/known-space-y
@@ -134,7 +133,7 @@
                (constrain-ship {:x -1 :y -1})))
     )
 
-  (describe "shields recharge from antimatter"
+  (context "shields recharge from antimatter"
     (it "recharges shields and consumes antimatter"
       (let [ship (mom/make-ship)
             ship (assoc ship :shields 0)
@@ -144,7 +143,7 @@
         (should= charge (:shields recharged-ship) 0.0001)
         (should (ut/roughly= (- ship-antimatter charge) (:antimatter recharged-ship) 0.0001)))))
 
-  (describe "shields cant charge when antimatter is gone"
+  (context "shields cant charge when antimatter is gone"
     (it "does not recharge shields"
       (let [ship (mom/make-ship)
             ship (assoc ship :shields 0 :antimatter 0)
@@ -153,7 +152,7 @@
         (should (ut/roughly= 0 (:shields recharged-ship) 0.0001))
         (should (ut/roughly= 0 (:antimatter recharged-ship) 0.0001)))))
 
-  (describe "shields cant charge beyond ship-shields"
+  (context "shields cant charge beyond ship-shields"
     (it "stops at max shields"
       (let [ship (mom/make-ship)
             ship (assoc ship :shields ship-shields :antimatter 100)
@@ -162,7 +161,7 @@
         (should= ship-shields (:shields recharged-ship))
         (should= 100 (:antimatter recharged-ship)))))
 
-  (describe "dockable?"
+  (context "dockable?"
     (it "returns false if not within docking distance"
       (let [ship (mom/make-ship)
             base (mom/set-pos {} [0 (inc ship-docking-distance)])]
@@ -172,7 +171,7 @@
             base (mom/set-pos {} [0 (dec ship-docking-distance)])]
         (should (dockable? ship [base])))))
 
-  (describe "docking at corbomite device"
+  (context "docking at corbomite device"
     (it "installs corbomite device and removes base"
       (let [world (mom/make-world)
             ship (:ship world)
@@ -183,7 +182,7 @@
         (should (nil? (first (:bases world))))
         (should (:corbomite-device-installed (:ship world))))))
 
-  (describe "docking replenishes resources"
+  (context "docking replenishes resources"
     (it "fully replenishes ship from base"
       (let [world (mom/make-world)
             ship (:ship world)
@@ -204,7 +203,7 @@
         (should= 1 (:torpedos base))
         (should= 0 (:kinetics base)))))
 
-  (describe "docking at undersupplied base"
+  (context "docking at undersupplied base"
     (it "partially replenishes ship"
       (let [world (mom/make-world)
             ship (:ship world)
@@ -229,7 +228,7 @@
         (should= 0 (:torpedos base))
         (should= 0 (:kinetics base)))))
 
-  (describe "docking at multiple undersupplied bases"
+  (context "docking at multiple undersupplied bases"
     (it "combines resources from multiple bases"
       (let [world (mom/make-world)
             ship (:ship world)
@@ -250,7 +249,7 @@
         (should= 3 antimatter)
         (should= 5 dilithium))))
 
-  (describe "deployment"
+  (context "deployment"
     (let [ship (mom/make-ship)]
       (context "bases and stars"
         (it "returns false for all factories with no stars"
@@ -358,7 +357,7 @@
       )
     )
 
-  (describe "damage repair"
+  (context "damage repair"
     (with-stubs)
     (with ship (mom/make-ship))
     (it "returns full repair capacity when undamaged"
@@ -396,7 +395,7 @@
             (should= 0 (:sensor-damage repaired))
             (should= 5 (:impulse-damage repaired)))))))
 
-  (describe "ship destruction"
+  (context "ship destruction"
     (let [ship (mom/make-ship)]
       (it "destroys ship with 100% life support damage"
         (let [ship (assoc ship :life-support-damage 100)]
@@ -408,7 +407,7 @@
         (let [ship (assoc ship :life-support-damage 99 :hull-damage 99)]
           (should-not (:destroyed (update-destruction ship)))))))
 
-  (describe "dilithium"
+  (context "dilithium"
     (with-stubs)
     (let [world (mom/make-world)
           ship (:ship world)]
@@ -431,7 +430,7 @@
               world (update-ship 1 world)]
           (should= 0 (:dilithium (:ship world)) 1e-10)))))
 
-  (describe "core temperature"
+  (context "core temperature"
     (let [ship (mom/make-ship)]
       (it "heats core with antimatter consumption"
         (let [hot-ship (heat-core 100 ship)]
@@ -450,9 +449,7 @@
           (should= (* 50 (- 1 (* dilithium-heat-dissipation (/ (Math/sqrt 2) 2))))
                    (:core-temp cool-ship) 1e-10)))))
 
-  (describe "base deployment"
-    (before (view-frame/clear-messages!))
-
+  (context "base deployment"
     (it "fails if ship not near star"
       (let [world (mom/make-world)
             ship (:ship world)
@@ -461,7 +458,7 @@
             world (deploy-base :antimatter-factory world)]
         (should= 0 (count (:bases world)))
         (should= ship (:ship world))
-        (should= 1 (count @view-frame/message-queue))))
+        (should= [:no-star] (:messages world))))
 
     (it "fails if insufficient antimatter"
       (let [world (mom/make-world)
@@ -472,7 +469,7 @@
             world (deploy-base :antimatter-factory world)]
         (should= 0 (count (:bases world)))
         (should= ship (:ship world))
-        (should= 1 (count @view-frame/message-queue))))
+        (should= [:insufficient-resources] (:messages world))))
 
     (it "fails if insufficient dilithium"
       (let [world (mom/make-world)
@@ -483,7 +480,7 @@
             world (deploy-base :antimatter-factory world)]
         (should= 0 (count (:bases world)))
         (should= ship (:ship world))
-        (should= 1 (count @view-frame/message-queue))))
+        (should= [:insufficient-resources] (:messages world))))
 
     (it "fails if base already exists at star"
       (let [world (mom/make-world)
@@ -494,7 +491,7 @@
             world (deploy-base :antimatter-factory world)]
         (should= 1 (count (:bases world)))
         (should= ship (:ship world))
-        (should= 1 (count @view-frame/message-queue))))
+        (should= [:already-deployed] (:messages world))))
 
     (it "succeeds if ship near star with sufficient resources"
       (let [world (mom/make-world)

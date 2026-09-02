@@ -3,7 +3,7 @@
             [spacewar.game-logic.config :as glc]
             [spacewar.game-logic.explosions :as explosions]
             [spacewar.game-logic.shots :as shots]
-            [spacewar.ui.messages :as messages]
+            [spacewar.game-logic.notifications :as notifications]
             [spacewar.geometry :as geo]
             [spacewar.vector :as vector]
             [spacewar.util :as util]))
@@ -48,15 +48,18 @@
                        :visible :firing
                        :firing :fading
                        :fading :disappeared)]
-      (when (= next-state :appearing)
-        (messages/send-message :romulan-appearing))
-      (assoc romulan :state next-state :age 0 :fire-weapon (= next-state :fading)))
+      (assoc romulan :state next-state :age 0 :fire-weapon (= next-state :fading)
+                     :appeared? (= next-state :appearing)))
     romulan))
 
 (defn update-romulans-state [ms world]
-  (let [romulans (:romulans world)
-        romulans (map #(update-romulan-state ms %) romulans)]
-    (assoc world :romulans romulans)))
+  (let [romulans (map #(update-romulan-state ms %) (:romulans world))
+        appeared (filter :appeared? romulans)
+        romulans (map #(dissoc % :appeared?) romulans)
+        world (assoc world :romulans romulans)]
+    (reduce (fn [w _] (notifications/notify w :romulan-appearing))
+            world
+            appeared)))
 
 (defn remove-disappeared-romulans [world]
   (let [romulans (:romulans world)

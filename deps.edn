@@ -14,6 +14,9 @@
            :spec {:main-opts ["-m" "speclj.main" "-c"]
                   :extra-deps {speclj/speclj {:mvn/version "3.4.6"}}
                   :extra-paths ["spec"]}
+           :property {:main-opts ["-m" "speclj.main" "-c" "spec-property"]
+                      :extra-deps {speclj/speclj {:mvn/version "3.4.6"}}
+                      :extra-paths ["spec" "spec-property"]}
            :cljs {:main-opts ["-m" "cljs.main"
                               "--optimizations" "none"
                               "--compile" "spacewar.core"

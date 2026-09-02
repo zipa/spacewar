@@ -1,13 +1,13 @@
 (ns spacewar.game-logic.spec-mother
   (:require
     [clojure.spec.alpha :as spec]
-    [spacewar.core :as core]
     [spacewar.game-logic.klingons :as klingons]
     [spacewar.game-logic.romulans :as romulans]
     [spacewar.game-logic.shots :as shots]
     [spacewar.game-logic.ship :as ship]
     [spacewar.game-logic.stars :as stars]
     [spacewar.game-logic.bases :as bases]
+    [spacewar.game-logic.world :as world]
     [spacewar.game-logic.config :refer [klingon-shields
                                         ship-antimatter
                                         ship-dilithium
@@ -16,7 +16,7 @@
                                         ship-torpedos]]))
 
 (defn valid-world? [world]
-  (let [explanation (spec/explain-data ::core/world world)]
+  (let [explanation (spec/explain-data ::world/world world)]
     (if (nil? explanation) true explanation)))
 
 (defn valid-ship? [ship]

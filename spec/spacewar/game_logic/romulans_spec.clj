@@ -34,7 +34,11 @@
                 updated-romulan (first (:romulans updated-world))]
             (should= next-state (:state updated-romulan))
             (should= 0 (:age updated-romulan))
-            (should= fire-weapon (:fire-weapon updated-romulan)))))))
+            (should= fire-weapon (:fire-weapon updated-romulan))
+            (should-not (contains? updated-romulan :appeared?))
+            (if (= next-state :appearing)
+              (should= [:romulan-appearing] (:messages updated-world))
+              (should= [] (:messages updated-world))))))))
 
   (it "romulan does not create shot when firing-weapon is false"
     (let [romulan (assoc @romulan :fire-weapon false)

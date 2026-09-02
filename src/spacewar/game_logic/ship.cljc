@@ -5,8 +5,7 @@
     [spacewar.game-logic.bases :as bases]
     [spacewar.game-logic.config :as glc]
     [spacewar.geometry :as geo]
-    [spacewar.ui.view-frame :as view-frame]
-    [spacewar.ui.messages :as messages]
+    [spacewar.game-logic.notifications :as notifications]
     [spacewar.util :as util :refer [handle-event]]
     [spacewar.vector :as vector]))
 
@@ -444,13 +443,13 @@
   (let [{:keys [ship stars bases]} world
         deployable-star (find-deployable-star type ship stars)]
     (cond (not deployable-star)
-          (do (messages/send-message :no-star) world)
+          (notifications/notify world :no-star)
 
           (base-already-deployed? deployable-star bases)
-          (do (messages/send-message :already-deployed) world)
+          (notifications/notify world :already-deployed)
 
           (not (sufficient-resources-for-deployment? ship))
-          (do (messages/send-message :insufficient-resources) world)
+          (notifications/notify world :insufficient-resources)
 
           :else
           (let [{:keys [x y]} ship
