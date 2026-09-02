@@ -1,10 +1,8 @@
 (ns spacewar.game-logic.klingons
   (:require [clojure.spec.alpha :as s]
-            [quil.core :as q]
             [spacewar.game-logic.clouds :as clouds]
             [spacewar.game-logic.config :as glc]
             [spacewar.game-logic.explosions :as explosions]
-            [spacewar.game-logic.hit :as hit]
             [spacewar.game-logic.shots :as shots]
             [spacewar.geometry :as geo]
             [spacewar.util :as util]
@@ -35,7 +33,7 @@
                                   ::battle-state-age ::battle-state
                                   ::cruise-state
                                   ::mission]
-                         :opt-un [::hit/hit]))
+                         :opt-un [:spacewar.game-logic.hit/hit]))
 (s/def ::klingons (s/coll-of ::klingon))
 
 (def cruise-fsm {:patrol {:low-antimatter :refuel
@@ -202,7 +200,7 @@
         vmag shot-velocity
         abx (- bx ax)
         aby (- by ay)
-        abmag (q/sqrt (+ (* abx abx) (* aby aby)))
+        abmag (Math/sqrt (+ (* abx abx) (* aby aby)))
         abx (/ abx abmag)
         aby (/ aby abmag)
         udotab (+ (* abx ux) (* aby uy))
@@ -212,8 +210,8 @@
         uiy (- uy ujy)
         vix uix
         viy uiy
-        vimag (q/sqrt (+ (* vix vix) (* viy viy)))
-        vjmag (q/sqrt (+ (* vmag vmag) (* vimag vimag)))
+        vimag (Math/sqrt (+ (* vix vix) (* viy viy)))
+        vjmag (Math/sqrt (+ (* vmag vmag) (* vimag vimag)))
         vjx (* abx vjmag)
         vjy (* aby vjmag)
         vx (+ vjx vix)
@@ -241,7 +239,7 @@
 (defn- turning? [ship]
   (let [heading (:heading ship)
         heading-setting (:heading-setting ship)
-        diff (q/abs (- heading heading-setting))]
+        diff (abs (- heading heading-setting))]
     (> diff 0.5)))
 
 (defn- warping? [ship]
@@ -665,15 +663,15 @@
       ))
   )
 
+(defn stay-refueling? [{:keys [antimatter cruise-state]}]
+  (and (= :refuel cruise-state)
+       (< antimatter (* glc/klingon-pct-refueling-target glc/klingon-antimatter))))
+
 (defn- change-cruise-state [klingon]
-  (let [antimatter (:antimatter klingon)
-        transition (cruise-transition klingon)
-        cruise-state (:cruise-state klingon)
-        new-state (if (and (= :refuel cruise-state)
-                           (< antimatter (* glc/klingon-pct-refueling-target glc/klingon-antimatter)))
-                    :refuel
-                    (-> cruise-fsm cruise-state transition))]
-    (assoc klingon :cruise-state new-state)))
+  (assoc klingon :cruise-state
+         (if (stay-refueling? klingon)
+           :refuel
+           (get-in cruise-fsm [(:cruise-state klingon) (cruise-transition klingon)]))))
 
 (defn- change-all-cruise-states [{:keys [klingons] :as world}]
   (assoc world :klingons (map change-cruise-state klingons)))
@@ -728,27 +726,25 @@
         ]
     (assoc world :klingons klingons)))
 
+(defn praxis-invasion-imminent? [{:keys [minutes klingons ship]}]
+  (and (< (rand) (/ (or minutes 0) glc/minutes-till-full-klingon-invasion))
+       (<= (count klingons) (* 1.5 glc/number-of-klingons))
+       (not (:corbomite-device-installed ship))))
+
 (defn- add-klingons-from-praxis [world]
-  (let [minutes (get world :minutes 0)
-        probability (/ minutes glc/minutes-till-full-klingon-invasion)
-        klingon-count (count (:klingons world))
-        ship (:ship world)
-        corbomite? (:corbomite-device-installed ship)]
-    (if (and (< (rand) probability)
-             (<= klingon-count (* 1.5 glc/number-of-klingons))
-             (not corbomite?))
-      (new-klingon-from-praxis world)
-      world)))
+  (if (praxis-invasion-imminent? world)
+    (new-klingon-from-praxis world)
+    world))
+
+(def next-mission
+  {:blockade :seek-and-destroy
+   :seek-and-destroy :blockade
+   :escape-corbomite :escape-corbomite})
 
 (defn- try-change-mission [klingon]
-  (let [mission (:mission klingon)
-        new-mission (condp = mission
-                      :blockade :seek-and-destroy
-                      :seek-and-destroy :blockade
-                      :escape-corbomite :escape-corbomite)]
-    (if (< (rand) glc/klingon-odds-to-change-mission)
-      (assoc klingon :mission new-mission)
-      klingon)))
+  (if (< (rand) glc/klingon-odds-to-change-mission)
+    (assoc klingon :mission (next-mission (:mission klingon)))
+    klingon))
 
 (defn try-change-missions [{:keys [klingons] :as world}]
   (let [klingons (map try-change-mission klingons)]

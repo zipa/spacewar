@@ -17,7 +17,6 @@
             [spacewar.util :as util]
             [clojure.spec.alpha :as s]
             #?(:clj [clojure.java.io :as io])
-            #?(:clj [clojure.java.io :as io])
             #?(:cljs [clojure.edn :as edn])))
 
 #?(:cljs (enable-console-print!))
@@ -26,7 +25,7 @@
 
 (s/def ::update-time number?)
 (s/def ::transport-check-time number?)
-(s/def ::shots ::shots/shots)
+(s/def ::shots :spacewar.game-logic.shots/shots)
 (s/def ::ms int?)
 (s/def ::text string?)
 (s/def ::duration int?)
@@ -39,14 +38,14 @@
 (s/def ::romulans-killed int?)
 (s/def ::transport-routes set?)
 
-(s/def ::world (s/keys :req-un [::explosions/explosions
-                                ::klingons/klingons
-                                ::ship/ship
-                                ::stars/stars
-                                ::bases/bases
-                                ::bases/transports
-                                ::clouds/clouds
-                                ::romulans/romulans
+(s/def ::world (s/keys :req-un [:spacewar.game-logic.explosions/explosions
+                                :spacewar.game-logic.klingons/klingons
+                                :spacewar.game-logic.ship/ship
+                                :spacewar.game-logic.stars/stars
+                                :spacewar.game-logic.bases/bases
+                                :spacewar.game-logic.bases/transports
+                                :spacewar.game-logic.clouds/clouds
+                                :spacewar.game-logic.romulans/romulans
                                 ::shots
                                 ::update-time
                                 ::transport-check-time
@@ -98,17 +97,20 @@
      :cljs (and (exists? js/localStorage)
                 (.getItem js/localStorage "spacewar.world"))))
 
+(defn- read-saved-world []
+  #?(:clj  (read-string (slurp "spacewar.world"))
+     :cljs (edn/read-string (.getItem js/localStorage "spacewar.world"))))
+
+(defn starting-world [saved-world]
+  (if (and saved-world (= version (:version saved-world)))
+    (do (messages/send-message :old-game) saved-world)
+    (do (messages/send-message :new-version) (make-initial-world))))
+
 (defn setup []
   (let [vmargin 30
         hmargin 5
-        saved? (game-saved?)
-        world (if saved?
-                #?(:clj  (read-string (slurp "spacewar.world"))
-                   :cljs (edn/read-string (.getItem js/localStorage "spacewar.world")))
-                (make-initial-world))
-        world (if (and saved? (= version (:version world)))
-                (do (messages/send-message :old-game) world)
-                (do (messages/send-message :new-version) (make-initial-world)))]
+        saved-world (when (game-saved?) (read-saved-world))
+        world (starting-world saved-world)]
     (q/frame-rate glc/frame-rate)
     (q/color-mode :rgb)
     (q/background 200 200 200)
@@ -124,11 +126,10 @@
      :fonts #?(:clj  {:lcars (q/create-font "Helvetica-Bold" 24)
                       :lcars-small (q/create-font "Arial" 18)
                       :messages (q/create-font "Bank Gothic" 30)}
-               :cljs {:lcars "Helvetica-Bold"               ;; Font names only for JS
+               :cljs {:lcars "Helvetica-Bold"
                       :lcars-small "Helvetica"
                       :messages "Bank Gothic"})
-     :frame-times []})
-  )
+     :frame-times []}))
 
 (defn- debug-position-ship-handler [event world]
   (println "debug-position-ship-handler" (:pos event))
@@ -252,35 +253,23 @@
     (messages/send-message :you-win))
   world)
 
-(defn- game-over [_ms {:keys [ship game-over-timer explosions deaths] :as world}]
-  (if (:destroyed ship)
-    (let [explosions (if (zero? game-over-timer)
-                       (conj explosions (ship-explosion ship))
-                       explosions)
-          _ (when (zero? game-over-timer)
-              (messages/send-message :you-died))
-          done? (and
-                  (pos? game-over-timer)
-                  (empty? explosions))
-          game-over-timer (if done? 0 1)
-          ship (if done? (ship/reincarnate) ship)
-          deaths (if done? (inc deaths) deaths)
-          ]
-      (assoc world :game-over-timer game-over-timer
-                   :explosions explosions
-                   :ship ship
-                   :deaths deaths))
-    world))
+(defn- begin-destruction [{:keys [ship explosions] :as world}]
+  (messages/send-message :you-died)
+  (assoc world :explosions (conj explosions (ship-explosion ship))
+               :game-over-timer 1))
 
-(defn- valid-world? [world]
-  (let [valid (s/valid? ::world world)]
-    (when (not valid)
-      (println (s/explain-str ::world world)))
-    valid))
+(defn- finish-destruction [world]
+  (assoc world :game-over-timer 0
+               :ship (ship/reincarnate)
+               :deaths (inc (:deaths world))))
+
+(defn game-over [_ms {:keys [ship game-over-timer explosions] :as world}]
+  (cond (not (:destroyed ship)) world
+        (zero? game-over-timer) (begin-destruction world)
+        (empty? explosions) (finish-destruction world)
+        :else (assoc world :game-over-timer 1)))
 
 (defn update-world [ms world]
-  ;{:pre [(valid-world? world)]
-  ; :post [(valid-world? %)]}
   (->> world
        (game-won ms)
        (game-over ms)
@@ -329,45 +318,46 @@
       fps)))
 
 
+(defn frame-timing [time last-update-time]
+  (let [raw (- time last-update-time)
+        last (if (> raw 500) time last-update-time)]
+    {:ms (max 1 (- time last))
+     :last-update-time last}))
+
+(defn crossed-interval? [time last-update-time interval]
+  (not= (int (/ time interval)) (int (/ last-update-time interval))))
+
+(defn- apply-if [world pred f]
+  (if pred (f world) world))
+
+(defn apply-periodic-updates [world time last-update-time]
+  (-> world
+      (apply-if (crossed-interval? time last-update-time 1000) update-world-per-second)
+      (apply-if (crossed-interval? time last-update-time 60000) update-world-per-minute)))
+
+(defn- save-world [world]
+  #?(:clj  (spit "spacewar.world" world)
+     :cljs (when (exists? js/localStorage)
+             (.setItem js/localStorage "spacewar.world" world))))
+
 (defn update-state [context]
   (let [{:keys [world base-time]} context
         time (+ base-time (q/millis))
         last-update-time (:update-time world)
-        ms (- time last-update-time)
-        new-game? (> ms 500)
-        last-update-time (if new-game?
-                           time
-                           last-update-time)
-        ms (- time last-update-time)
-        ms (max 1 ms)                                       ;zero or negative values imply a game restart or new game.
+        timing (frame-timing time last-update-time)
+        ms (:ms timing)
+        last-update-time (:last-update-time timing)
         context (add-frame-time ms context)
-        frame-times (:frame-times context)
-        fps (frames-per-second frame-times)
+        fps (frames-per-second (:frame-times context))
         complex (:state context)
-        world (assoc world :update-time time
-                           :ms ms
-                           :fps fps)
+        world (assoc world :update-time time :ms ms :fps fps)
         [complex events] (p/update-state complex world)
-        events (flatten events)
-        world (process-events events world)
+        world (process-events (flatten events) world)
         world (update-world ms world)
-        new-second? (not= (int (/ time 1000)) (int (/ last-update-time 1000)))
-        new-minute? (not= (int (/ time 60000)) (int (/ last-update-time 60000)))
-        new-save? (not= (int (/ time 5000)) (int (/ last-update-time 5000)))
-
-        world (if new-second?
-                (update-world-per-second world)
-                world)
-        world (if new-minute?
-                (update-world-per-minute world)
-                world)]
-    (when new-save?
-      #?(:clj  (spit "spacewar.world" world)
-         :cljs (when (exists? js/localStorage)
-                 (.setItem js/localStorage "spacewar.world" world))))
-    (assoc context
-      :state complex
-      :world world)))
+        world (apply-periodic-updates world time last-update-time)]
+    (when (crossed-interval? time last-update-time 5000)
+      (save-world world))
+    (assoc context :state complex :world world)))
 
 (defn draw-state [{:keys [state]}]
   (q/fill 200 200 200)

@@ -2,10 +2,15 @@
   (:require
     [spacewar.spec-utils :as ut]
     [speclj.core :refer [should describe context it should= should-be-nil]]
-    [spacewar.ui.tactical-scan :refer [explosion-radius
+    [spacewar.game-logic.config :as glc]
+    [spacewar.game-logic.spec-mother :as mom]
+    [spacewar.ui.tactical-scan :refer [alert-background-color
                                        age-color
+                                       background-color
+                                       explosion-radius
+                                       kinetic-shot-style
                                        target-arc]]
-    [spacewar.ui.config :refer [phaser-target torpedo-target]]))
+    [spacewar.ui.config :as uic :refer [phaser-target torpedo-target]]))
 
 (describe "explosion-radius"
   (it "returns 0 when age is 0"
@@ -93,3 +98,41 @@
         (should= 0 r)
         (should (ut/roughly= -3 start  0.1))
         (should (ut/roughly= 3 stop  0.1))))))
+
+(describe "background color"
+  (it "is black during game over"
+    (should= uic/black
+             (background-color {:update-time 750
+                                :game-over-timer 1
+                                :ship (mom/make-ship)})))
+
+  (it "is black during the alert flash"
+    (should= uic/black
+             (background-color {:update-time 100
+                                :game-over-timer 0
+                                :ship (assoc (mom/make-ship) :hull-damage 50)})))
+
+  (it "is dark red when the ship is damaged"
+    (should= uic/dark-red
+             (alert-background-color (assoc (mom/make-ship) :hull-damage 10))))
+
+  (it "is dark red when antimatter is critical"
+    (should= uic/dark-red
+             (alert-background-color (assoc (mom/make-ship) :antimatter 0))))
+
+  (it "is dark yellow when shields are weak"
+    (should= uic/dark-yellow
+             (alert-background-color (assoc (mom/make-ship) :shields (* 0.5 glc/ship-shields)))))
+
+  (it "is black when the ship is healthy"
+    (should= uic/black
+             (alert-background-color (mom/make-ship)))))
+
+(describe "kinetic shot style"
+  (it "uses the supplied color for a normal shot"
+    (should= {:color uic/white :radius 3}
+             (kinetic-shot-style {:corbomite false} uic/white)))
+
+  (it "uses red and a larger radius for a corbomite shot"
+    (should= {:color uic/red :radius 5}
+             (kinetic-shot-style {:corbomite true} uic/white))))

@@ -8,24 +8,27 @@
             [spacewar.geometry :as geo]
             [spacewar.vector :as vector]))
 
-(defn- background-color [{:keys [update-time ship game-over-timer]}]
-  (let [{:keys [shields antimatter
-                life-support-damage
-                hull-damage warp-damage
-                impulse-damage sensor-damage
-                weapons-damage]} ship
-        max-damage (max life-support-damage
+(defn alert-background-color [{:keys [shields antimatter
+                                      life-support-damage
+                                      hull-damage warp-damage
+                                      impulse-damage sensor-damage
+                                      weapons-damage]}]
+  (let [max-damage (max life-support-damage
                         hull-damage
                         warp-damage
                         impulse-damage
                         sensor-damage
                         weapons-damage)]
-    (cond (pos? game-over-timer) uic/black
-          (< (mod update-time 1000) 500) uic/black
-          (> max-damage 0) uic/dark-red
+    (cond (> max-damage 0) uic/dark-red
           (< (/ antimatter glc/ship-antimatter) 0.1) uic/dark-red
           (< (/ shields glc/ship-shields) 0.6) uic/dark-yellow
           :else uic/black)))
+
+(defn background-color [{:keys [update-time ship game-over-timer]}]
+  (if (or (pos? game-over-timer)
+          (< (mod update-time 1000) 500))
+    uic/black
+    (alert-background-color ship)))
 
 (defn- draw-background [state]
   (let [{:keys [w h]} state]
@@ -113,26 +116,26 @@
      (- target-bearing half-spread)
      (+ target-bearing half-spread)]))
 
+(defn- draw-target-arc [tgt-radius start stop]
+  (q/no-stroke)
+  (q/fill 255 255 255 50)
+  (q/ellipse-mode :center)
+  (q/arc 0 0 tgt-radius tgt-radius
+         (geo/->radians start)
+         (geo/->radians stop)
+         #?(:clj :pie)))
+
 (defn- draw-ship [state]
   (let [{:keys [w h]} state
         ship (->> state :world :ship)
-        heading (or (:heading ship) 0)
-        velocity (or (:velocity ship) [0 0])
-        [vx vy] (vector/scale uic/velocity-vector-scale velocity)
-        radians (q/radians heading)
-        [tgt-radius start stop] (target-arc ship)
-        start (q/radians start)
-        stop (q/radians stop)
-        draw-arc (not= (:selected-weapon ship) :none)]
+        [vx vy] (icons/ship-velocity-vector ship)
+        radians (geo/->radians (icons/ship-heading ship))
+        [tgt-radius start stop] (target-arc ship)]
     (q/with-translation
       [(/ w 2) (/ h 2)]
-      (when draw-arc
-        (q/no-stroke)
-        (q/fill 255 255 255 50)
-        (q/ellipse-mode :center)
-        (q/arc 0 0 tgt-radius tgt-radius start stop #?(:clj :pie)))
-      (icons/draw-ship-icon [vx vy] radians ship)
-      )))
+      (when (not= :none (:selected-weapon ship))
+        (draw-target-arc tgt-radius start stop))
+      (icons/draw-ship-icon [vx vy] radians ship))))
 
 (defn- draw-torpedo-segment []
   (let [angle (rand 360)
@@ -151,40 +154,38 @@
   (q/ellipse-mode :center)
   (q/ellipse 0 0 4 4))
 
-(defn- draw-torpedo-shots [{:keys [world] :as state}]
-  (let [shots (:shots world)]
-    (draw-objects-in state
-                     (filter #(= :torpedo (:type %)) shots)
-                     (partial draw-torpedo uic/white))))
+(defn- shots-of-type [state type]
+  (filter #(= type (:type %)) (:shots (:world state))))
+
+(defn- draw-shots [state type draw]
+  (draw-objects-in state (shots-of-type state type) draw))
+
+(defn- draw-torpedo-shots [state]
+  (draw-shots state :torpedo (partial draw-torpedo uic/white)))
 
 (defn- draw-klingon-torpedo-shots [state]
-  (draw-objects-in state
-                   (filter #(= :klingon-torpedo (:type %)) (:shots (:world state)))
-                   (partial draw-torpedo uic/green)))
+  (draw-shots state :klingon-torpedo (partial draw-torpedo uic/green)))
 
 (defn- draw-romulan-blast-shots [state]
-  (draw-objects-in state
-                   (filter #(= :romulan-blast (:type %)) (:shots (:world state)))
-                   (partial icons/draw-romulan-shot (/ (:w state) glc/tactical-range))))
+  (draw-shots state :romulan-blast (partial icons/draw-romulan-shot (/ (:w state) glc/tactical-range))))
+
+(defn kinetic-shot-style [shot color]
+  (if (:corbomite shot)
+    {:color uic/red :radius 5}
+    {:color color :radius 3}))
 
 (defn- draw-kinetic-shot [color shot]
-  (let [corbomite (:corbomite shot)
-        color (if corbomite uic/red color)
-        radius (if corbomite 5 3)]
+  (let [{:keys [color radius]} (kinetic-shot-style shot color)]
     (q/ellipse-mode :center)
     (q/no-stroke)
     (apply q/fill color)
     (q/ellipse 0 0 radius radius)))
 
 (defn- draw-kinetic-shots [state]
-  (draw-objects-in state
-                   (filter #(= :kinetic (:type %)) (:shots (:world state)))
-                   (partial draw-kinetic-shot uic/kinetic-color)))
+  (draw-shots state :kinetic (partial draw-kinetic-shot uic/kinetic-color)))
 
 (defn- draw-klingon-kinetic-shots [state]
-  (draw-objects-in state
-                   (filter #(= :klingon-kinetic (:type %)) (:shots (:world state)))
-                   (partial draw-kinetic-shot uic/klingon-kinetic-color)))
+  (draw-shots state :klingon-kinetic (partial draw-kinetic-shot uic/klingon-kinetic-color)))
 
 (defn- phaser-intensity [range]
   (let [intensity (* 255 (- 1 (/ range glc/phaser-range)))]
@@ -206,14 +207,10 @@
     (q/line 0 0 sx sy)))
 
 (defn- draw-phaser-shots [state]
-  (draw-objects-in state
-                   (filter #(= :phaser (:type %)) (:shots (:world state)))
-                   (partial draw-phaser-shot phaser-color)))
+  (draw-shots state :phaser (partial draw-phaser-shot phaser-color)))
 
 (defn- draw-klingon-phaser-shots [state]
-  (draw-objects-in state
-                   (filter #(= :klingon-phaser (:type %)) (:shots (:world state)))
-                   (partial draw-phaser-shot klingon-phaser-color)))
+  (draw-shots state :klingon-phaser (partial draw-phaser-shot klingon-phaser-color)))
 
 (defn explosion-radius [age profile]
   (loop [profile profile radius 0 last-time 0]

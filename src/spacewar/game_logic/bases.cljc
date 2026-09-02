@@ -188,37 +188,45 @@
 (defn transport-ready? [base]
   (= (:transport-readiness base) glc/transport-ready))
 
+(def sufficient-antimatter-by-type
+  {:antimatter-factory glc/antimatter-factory-sufficient-antimatter
+   :dilithium-factory glc/dilithium-factory-sufficient-antimatter
+   :weapon-factory glc/weapon-factory-sufficient-antimatter
+   :corbomite-factory glc/corbomite-factory-sufficient-antimatter
+   :corbomite-device 0})
+
+(def antimatter-reserve-by-type
+  {:antimatter-factory glc/antimatter-factory-antimatter-reserve
+   :dilithium-factory glc/dilithium-factory-antimatter-reserve
+   :weapon-factory glc/weapon-factory-antimatter-reserve
+   :corbomite-factory glc/corbomite-factory-antimatter-reserve
+   :corbomite-device 0})
+
+(def sufficient-dilithium-by-type
+  {:antimatter-factory glc/antimatter-factory-sufficient-dilithium
+   :dilithium-factory glc/dilithium-factory-sufficient-dilithium
+   :weapon-factory glc/weapon-factory-sufficient-dilithium
+   :corbomite-factory glc/corbomite-factory-sufficient-dilithium
+   :corbomite-device 0})
+
+(def dilithium-reserve-by-type
+  {:antimatter-factory glc/antimatter-factory-dilithium-reserve
+   :dilithium-factory glc/dilithium-factory-dilithium-reserve
+   :weapon-factory glc/weapon-factory-dilithium-reserve
+   :corbomite-factory glc/corbomite-factory-dilithium-reserve
+   :corbomite-device 0})
+
 (defn- sufficient-antimatter [type]
-  (condp = type
-    :antimatter-factory glc/antimatter-factory-sufficient-antimatter
-    :dilithium-factory glc/dilithium-factory-sufficient-antimatter
-    :weapon-factory glc/weapon-factory-sufficient-antimatter
-    :corbomite-factory glc/corbomite-factory-sufficient-antimatter
-    :corbomite-device 0))
+  (sufficient-antimatter-by-type type))
 
 (defn- antimatter-reserve [type]
-  (condp = type
-    :antimatter-factory glc/antimatter-factory-antimatter-reserve
-    :dilithium-factory glc/dilithium-factory-antimatter-reserve
-    :weapon-factory glc/weapon-factory-antimatter-reserve
-    :corbomite-factory glc/corbomite-factory-antimatter-reserve
-    :corbomite-device 0))
+  (antimatter-reserve-by-type type))
 
 (defn- sufficient-dilithium [type]
-  (condp = type
-    :antimatter-factory glc/antimatter-factory-sufficient-dilithium
-    :dilithium-factory glc/dilithium-factory-sufficient-dilithium
-    :weapon-factory glc/weapon-factory-sufficient-dilithium
-    :corbomite-factory glc/corbomite-factory-sufficient-dilithium
-    :corbomite-device 0))
+  (sufficient-dilithium-by-type type))
 
 (defn- dilithium-reserve [type]
-  (condp = type
-    :antimatter-factory glc/antimatter-factory-dilithium-reserve
-    :dilithium-factory glc/dilithium-factory-dilithium-reserve
-    :weapon-factory glc/weapon-factory-dilithium-reserve
-    :corbomite-factory glc/corbomite-factory-dilithium-reserve
-    :corbomite-device 0))
+  (dilithium-reserve-by-type type))
 
 (defn- get-promised-commodity [commodity dest transports]
   (let [transports (filter #(= commodity (:commodity %)) transports)

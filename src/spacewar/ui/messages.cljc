@@ -10,72 +10,81 @@
   ([text duration]
    (view-frame/add-message! text duration)))
 
+(defn- percent [value max]
+  (int (* 100 (/ value max))))
+
+(defn- percent-text [prefix value max suffix]
+  (str prefix (percent value max) suffix))
+
+(def status-message-text
+  {:life-damage (constantly "Life Support Damage.")
+   :life-severe (constantly "Life Support Damage Severe!")
+   :life-critical (constantly "Life Support Critical!")
+   :hull-damage (constantly "Hull Damage.")
+   :hull-severe (constantly "Hull Damage Severe!")
+   :hull-critical (constantly "Hull Critical!")
+   :sensor-damage (constantly "Sensor Damage.")
+   :sensor-severe (constantly "Sensor Damage Severe!")
+   :sensor-critical (constantly "Sensors Critical!")
+   :impulse-damage (constantly "Impulse Damage.")
+   :impulse-severe (constantly "Impulse Damage Severe!")
+   :impulse-critical (constantly "Impulse Critical!")
+   :warp-damage (constantly "Warp Damage.")
+   :warp-severe (constantly "Warp Damage Severe!")
+   :warp-critical (constantly "Warp Critical!")
+   :weapons-damage (constantly "Weapons Damage.")
+   :weapons-severe (constantly "Weapons Damage Severe!")
+   :weapons-critical (constantly "Weapons Critical!")
+   :shields-charged (constantly "Shields Fully Charged.")
+   :shields-ready (constantly "Shields Battle Ready.")
+   :shields-damaged (fn [value max] (percent-text "Shields Holding. " value max "%."))
+   :shields-severe (fn [value max] (percent-text "Shields Weak." value max "%!"))
+   :shields-critical (constantly "Shields Critical!")
+   :antimatter-full (constantly "Antimatter Full.")
+   :antimatter-topped-off (constantly "Antimatter Topped Off.")
+   :antimatter-high (fn [value max] (percent-text "Antimatter High. " value max "%."))
+   :antimatter-low (fn [value max] (percent-text "Antimatter Low. " value max "%!"))
+   :antimatter-critical (constantly "Antimatter Critical!")
+   :dilithium-full (constantly "Dilithium Full.")
+   :dilithium-topped-off (constantly "Dilithium Topped Off.")
+   :dilithium-high (fn [value max] (percent-text "Dilithium High. " value max "%."))
+   :dilithium-low (fn [value max] (percent-text "Dilithium Low. " value max "%!"))
+   :dilithium-critical (constantly "Dilithium Critical!")
+   :temp-normal (constantly "Temperature Normal.")
+   :temp-high (fn [value max] (percent-text "Temperature High. " value max "%."))
+   :temp-critical (constantly "Temperature Critical!")
+   :temp-severe (fn [value max] (percent-text "Temperature Severe. " value max "%!"))
+   :torpedos-critical (constantly "Torpedos Critical!")
+   :torpedos-low (fn [value _] (str "Torpedos Low. " value "!"))
+   :torpedos-full (constantly "Torpedos Full.")
+   :torpedos-normal (fn [value _] (str "Torpedos Nominal. " value "."))
+   :torpedos-high (constantly "Torpedos High.")
+   :kinetics-critical (constantly "Kinetics Critical!")
+   :kinetics-low (fn [value _] (str "Kinetics Low. " value "!"))
+   :kinetics-full (constantly "Kinetics Full.")
+   :kinetics-normal (fn [value _] (str "Kinetics Nominal. " value "."))
+   :kinetics-high (fn [value _] (str "Kinetics High. " value "!"))})
+
+(def event-messages
+  {:you-win {:text "The Federation is safe!  You win!" :duration 1000000}
+   :you-died {:text "You died!" :duration 5000}
+   :welcome {:text "Welcome to Spacewar!" :duration 5000}
+   :save-federation {:text "Save the Federation!" :duration 10000}
+   :old-game {:text "Saved game loaded." :duration 10000}
+   :new-version {:text "Saved game ignored.  New version." :duration 10000}
+   :no-star {:text "No star nearby." :duration 5000}
+   :already-deployed {:text "Base already deployed." :duration 5000}
+   :insufficient-resources {:text "Insufficient resources." :duration 5000}
+   :romulan-appearing {:text "*******\nRomulan ship appearing!\n*******" :duration 10000}
+   :corbomite-device {:text "*******\nCorbomite device ready!\n*******" :duration 10000}})
+
 (defn send-message
   ([message-key value max]
-   (condp = message-key
-     :life-damage (msg "Life Support Damage.")
-     :life-severe (msg "Life Support Damage Severe!")
-     :life-critical (msg "Life Support Critical!")
-     :hull-damage (msg "Hull Damage.")
-     :hull-severe (msg "Hull Damage Severe!")
-     :hull-critical (msg "Hull Critical!")
-     :sensor-damage (msg "Sensor Damage.")
-     :sensor-severe (msg "Sensor Damage Severe!")
-     :sensor-critical (msg "Sensors Critical!")
-     :impulse-damage (msg "Impulse Damage.")
-     :impulse-severe (msg "Impulse Damage Severe!")
-     :impulse-critical (msg "Impulse Critical!")
-     :warp-damage (msg "Warp Damage.")
-     :warp-severe (msg "Warp Damage Severe!")
-     :warp-critical (msg "Warp Critical!")
-     :weapons-damage (msg "Weapons Damage.")
-     :weapons-severe (msg "Weapons Damage Severe!")
-     :weapons-critical (msg "Weapons Critical!")
-     :shields-charged (msg "Shields Fully Charged.")
-     :shields-ready (msg "Shields Battle Ready.")
-     :shields-damaged (msg (str "Shields Holding. " (int (* 100 (/ value max))) "%."))
-     :shields-severe (msg (str "Shields Weak." (int (* 100 (/ value max))) "%!"))
-     :shields-critical (msg "Shields Critical!")
-     :antimatter-full (msg "Antimatter Full.")
-     :antimatter-topped-off (msg "Antimatter Topped Off.")
-     :antimatter-high (msg (str "Antimatter High. " (int (* 100 (/ value max))) "%."))
-     :antimatter-low (msg (str "Antimatter Low. " (int (* 100 (/ value max))) "%!"))
-     :antimatter-critical (msg "Antimatter Critical!")
-     :dilithium-full (msg "Dilithium Full.")
-     :dilithium-topped-off (msg "Dilithium Topped Off.")
-     :dilithium-high (msg (str "Dilithium High. " (int (* 100 (/ value max))) "%."))
-     :dilithium-low (msg (str "Dilithium Low. " (int (* 100 (/ value max))) "%!"))
-     :dilithium-critical (msg "Dilithium Critical!")
-     :temp-normal (msg "Temperature Normal.")
-     :temp-high (msg (str "Temperature High. " (int (* 100 (/ value max))) "%."))
-     :temp-critical (msg "Temperature Critical!")
-     :temp-severe (msg (str "Temperature Severe. " (int (* 100 (/ value max))) "%!"))
-     :torpedos-critical (msg "Torpedos Critical!")
-     :torpedos-low (msg (str "Torpedos Low. " value "!"))
-     :torpedos-full (msg "Torpedos Full.")
-     :torpedos-normal (msg (str "Torpedos Nominal. " value "."))
-     :torpedos-high (msg (str "Torpedos High."))
-     :kinetics-critical (msg "Kinetics Critical!")
-     :kinetics-low (msg (str "Kinetics Low. " value "!"))
-     :kinetics-full (msg "Kinetics Full.")
-     :kinetics-normal (msg (str "Kinetics Nominal. " value "."))
-     :kinetics-high (msg (str "Kinetics High. " value "!"))))
+   (when-let [text-fn (status-message-text message-key)]
+     (msg (text-fn value max))))
   ([message-key]
-   (condp = message-key
-     :you-win (msg "The Federation is safe!  You win!" 1000000)
-     :you-died (msg "You died!" 5000)
-     :welcome (msg "Welcome to Spacewar!" 5000)
-     :save-federation (msg "Save the Federation!" 10000)
-     :old-game (msg "Saved game loaded." 10000)
-     :new-version (msg "Saved game ignored.  New version." 10000)
-     :no-star (msg "No star nearby." 5000)
-     :already-deployed (msg "Base already deployed." 5000)
-     :insufficient-resources (msg "Insufficient resources." 5000)
-     :romulan-appearing (msg "*******\nRomulan ship appearing!\n*******" 10000)
-     :corbomite-device (msg "*******\nCorbomite device ready!\n*******" 10000)
-     )
-   )
-  )
+   (when-let [{:keys [text duration]} (event-messages message-key)]
+     (msg text duration))))
 
 (defn item-message [item key max thresholds]
   (if (nil? (key @last-message))
@@ -98,43 +107,23 @@
                 (send-message message value max)
                 (recur threshold (rest thresholds))))))))))
 
+(defn- damage-thresholds [mild severe critical]
+  [[0.1 nil]
+   [0.3 mild]
+   [0.8 severe]
+   [1 critical]])
+
+(def ship-damage-messages
+  [[:life-support-damage :life-damage :life-severe :life-critical]
+   [:hull-damage :hull-damage :hull-severe :hull-critical]
+   [:sensor-damage :sensor-damage :sensor-severe :sensor-critical]
+   [:impulse-damage :impulse-damage :impulse-severe :impulse-critical]
+   [:warp-damage :warp-damage :warp-severe :warp-critical]
+   [:weapons-damage :weapons-damage :weapons-severe :weapons-critical]])
+
 (defn- ship-messages [ship]
-  (item-message ship :life-support-damage
-                100
-                [[0.1 nil]
-                 [0.3 :life-damage]
-                 [0.8 :life-severe]
-                 [1 :life-critical]])
-  (item-message ship :hull-damage
-                100
-                [[0.1 nil]
-                 [0.3 :hull-damage]
-                 [0.8 :hull-severe]
-                 [1 :hull-critical]])
-  (item-message ship :sensor-damage
-                100
-                [[0.1 nil]
-                 [0.3 :sensor-damage]
-                 [0.8 :sensor-severe]
-                 [1 :sensor-critical]])
-  (item-message ship :impulse-damage
-                100
-                [[0.1 nil]
-                 [0.3 :impulse-damage]
-                 [0.8 :impulse-severe]
-                 [1 :impulse-critical]])
-  (item-message ship :warp-damage
-                100
-                [[0.1 nil]
-                 [0.3 :warp-damage]
-                 [0.8 :warp-severe]
-                 [1 :warp-critical]])
-  (item-message ship :weapons-damage
-                100
-                [[0.1 nil]
-                 [0.3 :weapons-damage]
-                 [0.8 :weapons-severe]
-                 [1 :weapons-critical]])
+  (doseq [[key mild severe critical] ship-damage-messages]
+    (item-message ship key 100 (damage-thresholds mild severe critical)))
   (item-message ship :shields glc/ship-shields
                 [[0.2 :shields-critical]
                  [0.5 :shields-severe]
@@ -170,9 +159,7 @@
                  [0.3 :kinetics-low]
                  [0.5 :kinetics-normal]
                  [0.8 :kinetics-high]
-                 [1 :kinetics-full]])
-  )
+                 [1 :kinetics-full]]))
 
 (defn add-messages! [world]
-  (ship-messages (:ship world))
-  )
+  (ship-messages (:ship world)))

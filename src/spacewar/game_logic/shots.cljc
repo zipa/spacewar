@@ -7,8 +7,7 @@
     [spacewar.util :as util :refer [handle-event pos]]
     [clojure.set :as set]
     [spacewar.game-logic.explosions :as explosions]
-    [clojure.spec.alpha :as s]
-    [quil.core :as q #?@(:cljs [:include-macros true])]))
+    [clojure.spec.alpha :as s]))
 
 
 (s/def ::x number?)
@@ -171,15 +170,17 @@
 (defn- shot-distance [ms shot]
   (* ms ((:type shot) shot-velocity)))
 
+(def shot-range
+  {:kinetic glc/kinetic-range
+   :torpedo glc/torpedo-range
+   :phaser glc/phaser-range
+   :klingon-kinetic glc/klingon-kinetic-range
+   :klingon-phaser glc/klingon-phaser-range
+   :klingon-torpedo glc/klingon-torpedo-range
+   :romulan-blast glc/romulan-blast-range})
+
 (defn- shot-range-limit [shot]
-  (condp = (:type shot)
-    :kinetic glc/kinetic-range
-    :torpedo glc/torpedo-range
-    :phaser glc/phaser-range
-    :klingon-kinetic glc/klingon-kinetic-range
-    :klingon-phaser glc/klingon-phaser-range
-    :klingon-torpedo glc/klingon-torpedo-range
-    :romulan-blast glc/romulan-blast-range))
+  ((:type shot) shot-range))
 
 
 (defn update-shot-positions [ms world]
@@ -200,30 +201,28 @@
   (let [type (:type shot)]
     (type hit-proximity)))
 
+(defn- shots-hitting [hit-pairs target]
+  (map :shot (filter #(= target (:target %)) hit-pairs)))
+
+(defn- counted-hit-damage [damage-per-shot hit-shots]
+  (let [corbomite (-> hit-shots first :corbomite)]
+    (* damage-per-shot (count hit-shots) (if corbomite 3 1))))
+
 (defn- hit-by-kinetic [hit-pairs target]
-  (let [hit-shots (map :shot (filter #(= target (:target %)) hit-pairs))
-        corbomite (-> hit-shots first :corbomite)]
-    (assoc target :hit {:weapon :kinetic :damage (* glc/kinetic-damage
-                                                    (count hit-shots)
-                                                    (if corbomite 3 1))}))
-  )
+  (assoc target :hit {:weapon :kinetic
+                      :damage (counted-hit-damage glc/kinetic-damage (shots-hitting hit-pairs target))}))
 
 (defn- hit-by-phaser [hit-pairs target]
-  (let [hit-shots (map :shot (filter #(= target (:target %)) hit-pairs))
+  (let [hit-shots (shots-hitting hit-pairs target)
         ranges (map :range hit-shots)
         corbomite (-> hit-shots first :corbomite)]
     (if corbomite
       (assoc target :hit {:weapon :phaser :damage (repeat (count ranges) 0.001)})
-      (assoc target :hit {:weapon :phaser :damage ranges})))
-  )
+      (assoc target :hit {:weapon :phaser :damage ranges}))))
 
 (defn- hit-by-torpedo [hit-pairs target]
-  (let [hit-shots (map :shot (filter #(= target (:target %)) hit-pairs))
-        corbomite (-> hit-shots first :corbomite)]
-    (assoc target :hit {:weapon :torpedo :damage (* glc/torpedo-damage
-                                                    (count hit-shots)
-                                                    (if corbomite 3 1))}))
-  )
+  (assoc target :hit {:weapon :torpedo
+                      :damage (counted-hit-damage glc/torpedo-damage (shots-hitting hit-pairs target))}))
 
 (def hit-processors
   {:phaser hit-by-phaser
@@ -322,7 +321,7 @@
                   :weapons-damage])
 
 (defn- select-damaged-system []
-  (nth damage-keys (q/round (rand 5))))
+  (nth damage-keys (geo/round (rand 5))))
 
 (defn update-ship-hits [world]
   (let [ship (:ship world)

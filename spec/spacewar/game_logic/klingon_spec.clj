@@ -3,7 +3,6 @@
     [clojure.spec.alpha :as s]
     [spacewar.game-logic.bases :as bases]
     [spacewar.game-logic.config :as glc]
-    [spacewar.game-logic.klingons :as klingons]
     [spacewar.game-logic.klingons :as k]
     [spacewar.game-logic.shots :as shots]
     [spacewar.game-logic.spec-mother :as mom]
@@ -23,7 +22,7 @@
   (with world (assoc (mom/make-world) :klingons [@klingon]
                                       :ship @ship))
 
-  (describe "klingon basics"
+  (context "klingon basics"
     (it "makes a random klingon"
       (should (mom/valid-klingon? (k/make-random-klingon))))
 
@@ -32,7 +31,7 @@
         (should= nil (s/explain-data ::k/klingons klingons))
         (should= glc/number-of-klingons (count klingons)))))
 
-  (describe "klingon updates"
+  (context "klingon updates"
     (it "handles no hit"
       (let [new-world (k/update-klingons 20 @world)
             klingon (-> new-world :klingons first)]
@@ -79,7 +78,7 @@
                           (assoc :battle-state :advancing
                                  :antimatter (dec glc/klingon-antimatter-kamikazee-threshold)))
               ship (-> (mom/make-ship) (mom/set-pos [0 0]))]
-          (should= :kamikazee (klingons/determine-battle-state klingon ship)))))
+          (should= :kamikazee (k/determine-battle-state klingon ship)))))
 
     (it "goes to retreating mode when below runaway antimatter threshold"
       (with-redefs [rand (constantly 0)]
@@ -88,7 +87,7 @@
                           (assoc :battle-state :advancing
                                  :antimatter (dec glc/klingon-antimatter-runaway-threshold)))
               ship (-> (mom/make-ship) (mom/set-pos [0 0]))]
-          (should= :retreating (klingons/determine-battle-state klingon ship)))))
+          (should= :retreating (k/determine-battle-state klingon ship)))))
 
     (it "kamikazee mode depletes shields"
       (let [world (mom/make-world)
@@ -101,14 +100,14 @@
         (should (> 10 (:shields klingon)))
         )))
 
-  (describe "phaser damage"
+  (context "phaser damage"
     (it "calculates phaser damage based on ranges"
       (should= 0 (k/damage-by-phasers {:damage [glc/phaser-range]}))
       (should= glc/phaser-damage (k/damage-by-phasers {:damage [0]}))
       (should= (/ glc/phaser-damage 2) (k/damage-by-phasers {:damage [(/ glc/phaser-range 2)]}))
       (should= (* 2 glc/phaser-damage) (k/damage-by-phasers {:damage [0 0]}))))
 
-  (describe "shield recharge"
+  (context "shield recharge"
     (it "recharges shields based on antimatter"
       (should= {:antimatter 1000 :shields glc/klingon-shields}
                (k/recharge-shield 20 {:antimatter 1000 :shields glc/klingon-shields}))
@@ -119,7 +118,7 @@
         (should= {:antimatter am-out :shields shields-out}
                  (k/recharge-shield 20 {:antimatter am-in :shields shields-in})))))
 
-  (describe "klingon offense"
+  (context "klingon offense"
     (around [it] (with-redefs [k/delay-shooting? (fn [] false)] (it)))
 
     (with ship (-> (mom/make-ship) (mom/set-pos [0 0])))
@@ -256,7 +255,7 @@
           (should= 0 (:kinetics klingon)))))
     )
 
-  (describe "klingon constraints"
+  (context "klingon constraints"
     (context
       "klingons should not leave federation space except to the north."
 
@@ -350,7 +349,7 @@
               new-klingon (k/move-klingon 2 klingon)]
           (should= [0 north] (:thrust new-klingon))))))
 
-  (describe "klingon battle motion"
+  (context "klingon battle motion"
     (it "thrusts appropriately in battle states"
       (doseq [battle-state [:advancing :retreating :flank-right :flank-left]]
         (let [ship-pos [0 0]
@@ -364,7 +363,7 @@
               thrust-angle (geo/angle-degrees thrust ship-pos)]
           (should (ut/roughly= (glc/klingon-evasion-trajectories battle-state) thrust-angle 1e-5))))))
 
-  (describe "klingon super-state"
+  (context "klingon super-state"
     (it "determines battle or cruise state based on range"
       (let [ship (mom/set-pos @ship [0 0])
             klingon-out (mom/set-pos @klingon [(inc glc/klingon-tactical-range) 0])
@@ -382,7 +381,7 @@
         (should= [1 1] (:thrust new-klingon))
         (should= :cruise (k/super-state klingon ship)))))
 
-  (describe "klingon cruise behavior"
+  (context "klingon cruise behavior"
     (it "seeks and destroys in mission state"
       (let [ship (assoc @ship :x 1e7 :y 1e7)
             klingon (assoc @klingon :cruise-state :mission :mission :seek-and-destroy)
@@ -465,7 +464,6 @@
               world (assoc @world :stars [star1 star2 star3] :klingons [klingon] :ship ship :bases [base])
               world (k/cruise-klingons world)
               klingon (-> world :klingons first)]
-          (prn (:thrust klingon))
           (should (ut/roughly= 45 (geo/angle-degrees [0 0] (:thrust klingon))))
           (should= :cruise (k/super-state klingon ship))))
 
@@ -482,7 +480,7 @@
         (should (ut/roughly= glc/klingon-cruise-thrust abs-thrust 1e-8))
         (should= :cruise (k/super-state klingon ship)))))
 
-  (describe "cruise state transitions"
+  (context "cruise state transitions"
     (it "transitions based on antimatter and torpedos"
       (should= :low-antimatter (k/cruise-transition {:antimatter 0 :torpedos 0}))
       (should= :low-antimatter (k/cruise-transition {:antimatter (* 0.4 glc/klingon-antimatter) :torpedos 0}))
@@ -491,7 +489,51 @@
       (should= :capable (k/cruise-transition {:antimatter (* 0.41 glc/klingon-antimatter) :torpedos (* 0.41 glc/klingon-torpedos)}))
       (should= :well-supplied (k/cruise-transition {:antimatter (* 0.61 glc/klingon-antimatter) :torpedos (* 0.81 glc/klingon-torpedos)}))))
 
-  (describe "weapon production"
+  (context "stay-refueling?"
+    (it "stays refueling below the target"
+      (should (k/stay-refueling? {:cruise-state :refuel
+                                  :antimatter (* 0.64 glc/klingon-antimatter)})))
+    (it "does not stay refueling at the target"
+      (should-not (k/stay-refueling? {:cruise-state :refuel
+                                      :antimatter (* 0.65 glc/klingon-antimatter)})))
+    (it "does not stay refueling when not refueling"
+      (should-not (k/stay-refueling? {:cruise-state :patrol
+                                      :antimatter 0}))))
+
+  (context "next-mission"
+    (it "swaps blockade and seek-and-destroy"
+      (should= :seek-and-destroy (:blockade k/next-mission))
+      (should= :blockade (:seek-and-destroy k/next-mission)))
+    (it "keeps escape-corbomite"
+      (should= :escape-corbomite (:escape-corbomite k/next-mission))))
+
+  (context "praxis invasion"
+    (it "does not spawn when corbomite is installed"
+      (with-redefs [rand (constantly 0)]
+        (should-not (k/praxis-invasion-imminent?
+                      {:minutes glc/minutes-till-full-klingon-invasion
+                       :klingons []
+                       :ship {:corbomite-device-installed true}}))))
+    (it "does not spawn when too many klingons remain"
+      (with-redefs [rand (constantly 0)]
+        (should-not (k/praxis-invasion-imminent?
+                      {:minutes glc/minutes-till-full-klingon-invasion
+                       :klingons (repeat 31 {})
+                       :ship {:corbomite-device-installed false}}))))
+    (it "spawns when the roll succeeds"
+      (with-redefs [rand (constantly 0)]
+        (should (k/praxis-invasion-imminent?
+                  {:minutes glc/minutes-till-full-klingon-invasion
+                   :klingons []
+                   :ship {:corbomite-device-installed false}}))))
+    (it "does not spawn when the roll fails"
+      (with-redefs [rand (constantly 1)]
+        (should-not (k/praxis-invasion-imminent?
+                      {:minutes glc/minutes-till-full-klingon-invasion
+                       :klingons []
+                       :ship {:corbomite-device-installed false}})))))
+
+  (context "weapon production"
     (it "produces kinetics"
       (let [klingon (assoc @klingon :antimatter glc/klingon-antimatter :kinetics 0)
             klingon (k/update-torpedo-and-kinetic-production 2 klingon)]
@@ -520,7 +562,7 @@
         (should= (dec glc/klingon-torpedo-antimatter-threshold) (:antimatter klingon))
         (should= 0 (:torpedos klingon)))))
 
-  (describe "antimatter collection"
+  (context "antimatter collection"
     (it "refuels near stars and stops"
       (let [klingon (assoc @klingon :antimatter 0 :x 0 :y 0 :thrust [1 1] :velocity [1 1] :cruise-state :refuel)
             star (mom/make-star 0 (dec glc/klingon-range-for-antimatter-production) :o)
@@ -546,7 +588,7 @@
         (should= [1 1] (:velocity klingon))))
     )
 
-  (describe "klingon motion"
+  (context "klingon motion"
     (around [it] (with-redefs [k/calc-drag (constantly 1)]) it)
     (it "increases velocity with tactical thrust"
       (let [klingon (mom/set-pos @klingon [(dec glc/klingon-tactical-range) 0])
@@ -567,7 +609,7 @@
         (should (ut/roughly= 1002 x 1e-8))
         (should (ut/roughly= 1002 y 1e-8)))))
 
-  (describe "battle state transitions"
+  (context "battle state transitions"
     (around [it] (with-redefs [k/random-battle-state (constantly :flank-right)]) it)
     (it "transitions battle state based on distance, age, and antimatter"
       (let [expired-age (inc glc/klingon-battle-state-transition-age)
@@ -586,7 +628,7 @@
             (should= end-state (:battle-state klingon))
             (should= new-age (:battle-state-age klingon)))))))
 
-  (describe "klingon antimatter theft"
+  (context "klingon antimatter theft"
     (it "steals from base and stops if in guard state"
       (let [base (mom/make-base (:x @klingon) (+ (:y @klingon) (dec glc/ship-docking-distance)) :antimatter-factory 100 100)
             klingon (assoc @klingon :antimatter 0 :thrust [1 1] :velocity [1 1] :cruise-state :guard)
@@ -649,7 +691,7 @@
         (should= glc/klingon-antimatter (:antimatter klingon))
         (should= glc/klingon-antimatter (:antimatter klingon2)))))
 
-  (describe "klingon update orchestration"
+  (context "klingon update orchestration"
     (with-stubs)
     (it "calls all necessary update functions"
       (with-redefs [k/update-klingon-defense (stub :defense {:return @world})

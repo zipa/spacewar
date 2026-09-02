@@ -6,7 +6,7 @@
             [spacewar.ui.widgets.named-indicator :refer [->named-indicator]]
             ))
 
-(defn- damage-level [damage]
+(defn damage-level [damage]
   (condp >= damage
     0 0
     33 1

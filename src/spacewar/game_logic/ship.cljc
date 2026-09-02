@@ -316,13 +316,15 @@
       (assoc ship selected-engine engine-power-setting
                   :engine-power-setting 0))))
 
+(defn- select-engine [engine ship]
+  (assoc ship :selected-engine
+         (if (= (:selected-engine ship) engine) :none engine)))
+
 (defn- select-impulse [_ ship]
-  (let [selected-engine (:selected-engine ship)]
-    (assoc ship :selected-engine (if (= selected-engine :impulse) :none :impulse))))
+  (select-engine :impulse ship))
 
 (defn- select-warp [_ ship]
-  (let [selected-engine (:selected-engine ship)]
-    (assoc ship :selected-engine (if (= selected-engine :warp) :none :warp))))
+  (select-engine :warp ship))
 
 (defn- select-front-view [_ ship]
   (assoc ship :selected-view :front-view))
@@ -333,23 +335,20 @@
 (defn- select-tact-view [_ ship]
   (assoc ship :selected-view :tact-view))
 
-(defn- select-phaser [_ {:keys [selected-weapon] :as ship}]
+(defn- select-weapon [weapon {:keys [selected-weapon] :as ship}]
   (assoc ship
-    :weapon-number-setting (get-in ship [:saved-weapon-settings :phaser :number-setting] 1)
-    :weapon-spread-setting (get-in ship [:saved-weapon-settings :phaser :spread-setting] glc/min-spread)
-    :selected-weapon (if (= selected-weapon :phaser) :none :phaser)))
+    :weapon-number-setting (get-in ship [:saved-weapon-settings weapon :number-setting] 1)
+    :weapon-spread-setting (get-in ship [:saved-weapon-settings weapon :spread-setting] glc/min-spread)
+    :selected-weapon (if (= selected-weapon weapon) :none weapon)))
 
-(defn- select-torpedo [_ {:keys [selected-weapon] :as ship}]
-  (assoc ship
-    :weapon-number-setting (get-in ship [:saved-weapon-settings :torpedo :number-setting] 1)
-    :weapon-spread-setting (get-in ship [:saved-weapon-settings :torpedo :spread-setting] glc/min-spread)
-    :selected-weapon (if (= selected-weapon :torpedo) :none :torpedo)))
+(defn- select-phaser [_ ship]
+  (select-weapon :phaser ship))
 
-(defn- select-kinetic [_ {:keys [selected-weapon] :as ship}]
-  (assoc ship
-    :weapon-number-setting (get-in ship [:saved-weapon-settings :kinetic :number-setting] 1)
-    :weapon-spread-setting (get-in ship [:saved-weapon-settings :kinetic :spread-setting] glc/min-spread)
-    :selected-weapon (if (= selected-weapon :kinetic) :none :kinetic)))
+(defn- select-torpedo [_ ship]
+  (select-weapon :torpedo ship))
+
+(defn- select-kinetic [_ ship]
+  (select-weapon :kinetic ship))
 
 (defn- set-strat-scale [{:keys [value]} ship]
   (assoc ship :strat-scale value))

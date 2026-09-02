@@ -51,11 +51,10 @@
           (icons/draw-strategic-romulan))))))
 
 (defn- draw-ship [state]
-  (let [heading (or (->> state :ship :heading) 0)
-        velocity (or (->> state :ship :velocity) [0 0])
-        [vx vy] (vector/scale uic/velocity-vector-scale velocity)
-        radians (geo/->radians heading)]
-    (icons/draw-ship-icon [vx vy] radians (:ship state))))
+  (let [ship (:ship state)
+        [vx vy] (icons/ship-velocity-vector ship)
+        radians (geo/->radians (icons/ship-heading ship))]
+    (icons/draw-ship-icon [vx vy] radians ship)))
 
 (defn- draw-bases [state]
   (let [{:keys [bases pixel-width ship]} state

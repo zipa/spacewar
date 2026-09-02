@@ -6,20 +6,37 @@
             [spacewar.vector :as vector]
             [spacewar.util :as util]))
 
-(defn- transport-color [commodity]
-  (condp = commodity
-    :antimatter uic/orange
-    :dilithium uic/yellow))
+(def transport-colors
+  {:antimatter uic/orange
+   :dilithium uic/yellow})
 
+(defn transport-color [commodity]
+  (transport-colors commodity))
+
+(def transport-triangle
+  {:dilithium [0 -8 -6 6 6 6]
+   :antimatter [0 8 -6 -6 6 -6]})
+
+(defn- draw-transport-shape [commodity]
+  (apply q/triangle (transport-triangle commodity)))
 
 (defn draw-transport-icon [transport]
   (let [commodity (:commodity transport)]
     (q/ellipse-mode :center)
     (q/no-stroke)
     (apply q/fill (transport-color commodity))
-    (condp = commodity
-      :dilithium (q/triangle 0 -8 -6 6 6 6)
-      :antimatter (q/triangle 0 8 -6 -6 6 -6))))
+    (draw-transport-shape commodity)))
+
+(defn ship-heading [ship]
+  (or (:heading ship) 0))
+
+(defn ship-velocity-vector [ship]
+  (vector/scale uic/velocity-vector-scale (or (:velocity ship) [0 0])))
+
+(defn pulse-stroke-weight [active? millis on-weight off-weight]
+  (if (and active? (> (mod millis 500) 250))
+    on-weight
+    off-weight))
 
 (defn- age-angle [age]
   (let [maturity (min 1 (/ age glc/base-maturity-age))]
@@ -193,27 +210,26 @@
                   uic/black))
   (q/ellipse 0 0 10 10))
 
-(defn- klingon-state [{:keys [cruise-state battle-state mission]}]
-  (let [cruise-state (condp = cruise-state
-                       :patrol "P"
-                       :refuel "R"
-                       :guard "G"
-                       :mission "M"
-                       "X")
-        mission (condp = mission
-                  :blockade "B"
-                  :seek-and-destroy "A"
-                  :escape-corbomite "E"
-                  "-")
-        battle-state (condp = battle-state
-                       :no-battle "n"
-                       :flank-right "fr"
-                       :flank-left "fl"
-                       :retreating "r"
-                       :advancing "a"
-                       :kamikazee "K")]
-    (str mission ":" cruise-state "-" battle-state))
-  )
+(def cruise-state-label
+  {:patrol "P" :refuel "R" :guard "G" :mission "M"})
+
+(def mission-label
+  {:blockade "B" :seek-and-destroy "A" :escape-corbomite "E"})
+
+(def battle-state-label
+  {:no-battle "n"
+   :flank-right "fr"
+   :flank-left "fl"
+   :retreating "r"
+   :advancing "a"
+   :kamikazee "K"})
+
+(defn klingon-state [{:keys [cruise-state battle-state mission]}]
+  (str (get mission-label mission "-")
+       ":"
+       (get cruise-state-label cruise-state "X")
+       "-"
+       (battle-state-label battle-state)))
 
 (defn draw-klingon-counts [klingon]
   (let [shields (int (:shields klingon))]
@@ -235,10 +251,8 @@
 (defn draw-klingon-icon [klingon]
   (apply q/fill uic/black)
   (apply q/stroke uic/klingon-color)
-  (q/stroke-weight (if (and (= :kamikazee (:battle-state klingon))
-                            (< 250 (mod (q/millis) 500)))
-                     5
-                     2))
+  (q/stroke-weight (pulse-stroke-weight (= :kamikazee (:battle-state klingon))
+                                        (q/millis) 5 2))
   (q/ellipse-mode :center)
   (q/line 0 0 10 -6)
   (q/line 10 -6 14 -3)
@@ -246,16 +260,21 @@
   (q/line -10 -6 -14 -3)
   (q/ellipse 0 0 6 6))
 
-(defn draw-klingon-shields [shields]
+(defn klingon-shield-appearance [shields]
   (when (< shields glc/klingon-shields)
-    (let [pct (/ shields glc/klingon-shields)
-          flicker (< (rand 3) pct)
-          color [255 (* pct 255) 0 (if flicker (* pct 100) 100)]
-          radius (+ 35 (* pct 20))]
-      (apply q/fill color)
-      (q/ellipse-mode :center)
-      (q/no-stroke)
-      (q/ellipse 0 0 radius radius))))
+    (let [pct (/ shields glc/klingon-shields)]
+      {:pct pct
+       :radius (+ 35 (* pct 20))})))
+
+(defn shield-fill-color [pct flicker]
+  [255 (* pct 255) 0 (if flicker (* pct 100) 100)])
+
+(defn draw-klingon-shields [shields]
+  (when-let [{:keys [pct radius]} (klingon-shield-appearance shields)]
+    (apply q/fill (shield-fill-color pct (< (rand 3) pct)))
+    (q/ellipse-mode :center)
+    (q/no-stroke)
+    (q/ellipse 0 0 radius radius)))
 
 (defn draw-ship-icon [[vx vy] radians ship]
   (apply q/stroke uic/enterprise-vector-color)
@@ -264,10 +283,8 @@
   (q/with-rotation
     [radians]
     (apply q/stroke uic/enterprise-color)
-    (q/stroke-weight (if (and (:corbomite-device-installed ship)
-                              (< 250 (mod (q/millis) 500)))
-                       4
-                       2))
+    (q/stroke-weight (pulse-stroke-weight (:corbomite-device-installed ship)
+                                          (q/millis) 4 2))
     (q/ellipse-mode :center)
     (apply q/fill uic/black)
     (q/line -9 -9 0 0)
@@ -276,13 +293,14 @@
     (q/line -5 9 -15 9)
     (q/line -5 -9 -15 -9)))
 
+(defn pulsar-visible? [star-class millis]
+  (or (not= star-class :pulsar)
+      (< (mod millis 500) 250)))
+
 (defn draw-star-icon [star]
-  (let [class (:class star)
-        pulsar? (= class :pulsar)
-        pulsar-on? (< (mod (q/millis) 500) 250)]
+  (let [class (:class star)]
     (apply q/fill (class uic/star-colors))
-    (when (or (not pulsar?)
-              pulsar-on?)
+    (when (pulsar-visible? class (q/millis))
       (q/ellipse 0 0 (class uic/star-sizes) (class uic/star-sizes)))))
 
 (defn- draw-blob [jitter half-jitter diameter]

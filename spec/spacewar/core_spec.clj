@@ -1,11 +1,19 @@
 (ns spacewar.core-spec
-  (:require [spacewar.core :refer [add-frame-time
-                                   frames-per-second
-                                   make-initial-world
-                                   process-events
-                                   update-world]]
+  (:require [spacewar.core :as core :refer [add-frame-time
+                                            apply-periodic-updates
+                                            crossed-interval?
+                                            frame-timing
+                                            frames-per-second
+                                            game-over
+                                            make-initial-world
+                                            process-events
+                                            starting-world
+                                            update-world
+                                            version]]
+            [spacewar.game-logic.ship :as ship]
             [spacewar.game-logic.spec-mother :as mom]
-            [speclj.core :refer [describe it should should-not-be-nil should= should> with]]))
+            [spacewar.ui.messages :as messages]
+            [speclj.core :refer [context describe it should should-not should-not-be-nil should-not= should= should> with]]))
 
 (describe "initial world"
   (it "is created correctly"
@@ -32,7 +40,7 @@
   (with world (assoc (mom/make-world) :ship @ship))
 
 
-  (describe "engine selection"
+  (context "engine selection"
     (it "selects warp from none"
       (let [world (assoc-in @world [:ship :selected-engine] :none)]
         (should= :warp (->> world
@@ -71,7 +79,7 @@
   (with ship (mom/make-ship))
   (with world (assoc (mom/make-world) :ship @ship))
 
-  (describe "weapon selection"
+  (context "weapon selection"
     (it "selects phaser from none"
       (let [world (assoc-in @world [:ship :selected-weapon] :none)]
         (should= :phaser
@@ -138,3 +146,96 @@
     (should= 0 (frames-per-second []))
     (should= 1 (frames-per-second [1000]))
     (should= 22 (int (frames-per-second [30 40 50 60])))))
+
+(describe "starting world"
+  (it "restores a matching saved world"
+    (let [saved (assoc (mom/make-world) :version version)]
+      (with-redefs [messages/send-message (fn [_])]
+        (should= saved (starting-world saved)))))
+
+  (it "starts a new world when there is no save"
+    (with-redefs [messages/send-message (fn [_])]
+      (should-not-be-nil (starting-world nil))))
+
+  (it "starts a new world when the save version does not match"
+    (let [saved (assoc (mom/make-world) :version "old")]
+      (with-redefs [messages/send-message (fn [_])]
+        (should-not= saved (starting-world saved))))))
+
+(describe "frame timing"
+  (it "uses the elapsed time when the clock is advancing normally"
+    (should= {:ms 40 :last-update-time 100}
+             (frame-timing 140 100)))
+
+  (it "clamps a restart gap to 1ms"
+    (should= {:ms 1 :last-update-time 1000}
+             (frame-timing 1000 0)))
+
+  (it "clamps non-positive elapsed time to 1ms"
+    (should= {:ms 1 :last-update-time 100}
+             (frame-timing 100 100))))
+
+(describe "crossed-interval?"
+  (it "detects a new second"
+    (should (crossed-interval? 1000 999 1000))
+    (should-not (crossed-interval? 1500 1001 1000)))
+
+  (it "detects a new minute"
+    (should (crossed-interval? 60000 59999 60000))
+    (should-not (crossed-interval? 61000 60000 60000))))
+
+(describe "periodic world updates"
+  (it "applies the per-second update on a second boundary"
+    (let [world (mom/make-world)]
+      (with-redefs [core/update-world-per-second (fn [w] (assoc w :second true))
+                    core/update-world-per-minute (fn [w] (assoc w :minute true))]
+        (let [updated (apply-periodic-updates world 1000 999)]
+          (should (:second updated))
+          (should-not (:minute updated))))))
+
+  (it "applies the per-minute update on a minute boundary"
+    (let [world (mom/make-world)]
+      (with-redefs [core/update-world-per-minute (fn [w] (assoc w :minute true))
+                    core/update-world-per-second (fn [w] (assoc w :second true))]
+        (let [updated (apply-periodic-updates world 60000 59999)]
+          (should (:minute updated))
+          (should (:second updated)))))))
+
+(describe "game over"
+  (it "leaves an intact ship unchanged"
+    (let [world (mom/make-world)]
+      (should= world (game-over 10 world))))
+
+  (it "starts destruction when the ship is first destroyed"
+    (let [world (assoc (mom/make-world)
+                  :ship (assoc (mom/make-ship) :destroyed true)
+                  :game-over-timer 0
+                  :explosions [])]
+      (with-redefs [messages/send-message (fn [_])]
+        (let [updated (game-over 10 world)]
+          (should= 1 (:game-over-timer updated))
+          (should= 1 (count (:explosions updated)))
+          (should (:destroyed (:ship updated)))))))
+
+  (it "holds the destroyed ship while explosions remain"
+    (let [world (assoc (mom/make-world)
+                  :ship (assoc (mom/make-ship) :destroyed true)
+                  :game-over-timer 1
+                  :explosions [{:type :ship}])]
+      (let [updated (game-over 10 world)]
+        (should= 1 (:game-over-timer updated))
+        (should (:destroyed (:ship updated)))
+        (should= 0 (:deaths updated)))))
+
+  (it "reincarnates after explosions finish"
+    (let [world (assoc (mom/make-world)
+                  :ship (assoc (mom/make-ship) :destroyed true)
+                  :game-over-timer 1
+                  :explosions []
+                  :deaths 2)
+          reincarnated (assoc (mom/make-ship) :x 9 :y 9)]
+      (with-redefs [ship/reincarnate (fn [] reincarnated)]
+        (let [updated (game-over 10 world)]
+          (should= 0 (:game-over-timer updated))
+          (should= reincarnated (:ship updated))
+          (should= 3 (:deaths updated)))))))

@@ -47,7 +47,7 @@
          (> sx xmin)
          (> sy ymin))))
 
-(defn- star-size [m]
+(defn star-size [m]
   (let [mm (* f-lum m)]
     (cond
       (< mm 1) 1
@@ -57,7 +57,7 @@
       (< mm 20) 5
       :else 6)))
 
-(defn- star-color [m]
+(defn star-color [m]
   (let [mm (* f-lum m)]
     (if (>= mm 0.5)
       [255 255 255]

@@ -28,17 +28,17 @@
         romulans (map #(update % :age + ms) romulans)]
     (assoc world :romulans romulans)))
 
+(def romulan-state-duration
+  {:invisible glc/romulan-invisible-time
+   :appearing glc/romulan-appearing-time
+   :visible glc/romulan-visible-time
+   :firing glc/romulan-firing-time
+   :fading glc/romulan-fading-time})
+
 (defn romulan-state-transition [ms age state]
-  (let [min-time (condp = state
-                   :invisible glc/romulan-invisible-time
-                   :appearing glc/romulan-appearing-time
-                   :visible glc/romulan-visible-time
-                   :firing glc/romulan-firing-time
-                   :fading glc/romulan-fading-time)
-        past-time? (> age min-time)
-        next-second? (<= (rem age 1000) ms)
-        fifty-fifty? (< 0.5 (rand 1))]
-    (and past-time? next-second? fifty-fifty?)))
+  (and (> age (romulan-state-duration state))
+       (<= (rem age 1000) ms)
+       (< 0.5 (rand 1))))
 
 (defn update-romulan-state [ms romulan]
   (if (romulan-state-transition ms (:age romulan) (:state romulan))

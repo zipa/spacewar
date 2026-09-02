@@ -48,7 +48,6 @@
               world (assoc (mom/make-world) :shots [shot])
               world (update-shot-positions ms world)
               shot (first (:shots world))]
-          (prn 'shots (:shots world))
           (should (ut/roughly= sx (:x shot) 1e-10))
           (should (ut/roughly= sy (:y shot) 1e-10))
           (should (ut/roughly= bearing (:bearing shot) 1e-10))
